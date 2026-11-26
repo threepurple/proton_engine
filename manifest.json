@@ -1,0 +1,13 @@
+
+{
+  "name": "Próton Engine",
+  "short_name": "Próton",
+  "description": "Motor de jogos retrô 2.5D",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#08110f",
+  "theme_color": "#08110f",
+  "categories": ["games", "entertainment"]
+}
