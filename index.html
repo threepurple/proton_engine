@@ -5,8 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <meta name="theme-color" content="#08110f">
-
-<title>Próton Engine</title>
+<title>Bomb Cave</title>
 <link rel="manifest" href="./manifest.json">
 
 <style>
@@ -15,7 +14,7 @@
 body{
  margin:0;
  background:#08110f;
- color:#54efb1;
+ color:#65efad;
  font-family:Arial,sans-serif;
  overflow:hidden;
  touch-action:none;
@@ -31,10 +30,7 @@ header{
  border-bottom:1px solid #245440;
 }
 
-.logo{
- font-weight:bold;
- letter-spacing:2px;
-}
+.logo{font-weight:bold;letter-spacing:2px}
 
 button{
  background:#17372c;
@@ -49,6 +45,7 @@ main{
  height:calc(100dvh - 55px);
  display:flex;
  flex-direction:column;
+ position:relative;
 }
 
 #game{
@@ -60,7 +57,7 @@ main{
 }
 
 .hud{
- display:flex;
+ display:none;
  justify-content:space-between;
  padding:8px 14px;
  background:#101c19;
@@ -68,9 +65,9 @@ main{
 }
 
 .controls{
+ display:none;
  height:145px;
  background:#0d1714;
- display:flex;
  justify-content:space-around;
  align-items:center;
  padding:10px;
@@ -97,17 +94,94 @@ main{
  pointer-events:none;
 }
 
-.look{
- display:flex;
- gap:9px;
- align-items:center;
-}
-
+.look{display:flex;gap:9px}
 .action{
  width:58px;
  height:58px;
  border-radius:50%;
  font-size:20px;
+}
+
+/* MENU */
+
+#menu{
+ position:absolute;
+ inset:0;
+ z-index:5;
+ background:
+ linear-gradient(180deg,rgba(4,12,10,.72),rgba(3,10,8,.96)),
+ repeating-linear-gradient(
+  0deg,
+  transparent 0px,
+  transparent 3px,
+  rgba(100,255,170,.035) 4px
+ );
+ display:flex;
+ flex-direction:column;
+ justify-content:center;
+ align-items:center;
+ padding:25px;
+ text-align:center;
+}
+
+.studio{
+ color:#68ad8a;
+ font-size:11px;
+ letter-spacing:4px;
+ margin-bottom:15px;
+}
+
+.title{
+ color:#e9fff1;
+ font-size:clamp(42px,12vw,72px);
+ font-weight:1000;
+ letter-spacing:5px;
+ text-shadow:
+  0 0 8px #39e78c,
+  4px 4px 0 #155538;
+}
+
+.subtitle{
+ color:#7da98f;
+ font-size:11px;
+ letter-spacing:3px;
+ margin-top:8px;
+}
+
+.cave{
+ font-size:65px;
+ margin:30px 0;
+ filter:drop-shadow(0 0 15px #36d982);
+}
+
+#play{
+ width:85%;
+ max-width:290px;
+ padding:18px;
+ background:#176a43;
+ color:#ffffff;
+ border:2px solid #5af4a1;
+ border-radius:5px;
+ font-size:17px;
+ letter-spacing:2px;
+ box-shadow:0 0 20px #176a4366;
+}
+
+#play:active{
+ background:#269c61;
+ transform:scale(.97);
+}
+
+.version{
+ position:absolute;
+ bottom:18px;
+ color:#527b65;
+ font-size:10px;
+ letter-spacing:2px;
+}
+
+#full{
+ font-size:15px;
 }
 </style>
 </head>
@@ -123,13 +197,13 @@ main{
 
  <canvas id="game"></canvas>
 
- <div class="hud">
+ <div class="hud" id="hud">
   <span>HP: 100</span>
-  <span>RAYCASTER 1.0</span>
-  <span>ONLINE</span>
+  <span>BOMB CAVE DEMO</span>
+  <span>LEVEL 01</span>
  </div>
 
- <div class="controls">
+ <div class="controls" id="controls">
   <div id="stick">
    <div id="knob"></div>
   </div>
@@ -137,6 +211,24 @@ main{
   <div class="look">
    <button class="action" id="left">↶</button>
    <button class="action" id="right">↷</button>
+  </div>
+ </div>
+
+ <div id="menu">
+  <div class="studio">THREE PURPLE APRESENTA</div>
+
+  <div class="title">BOMB CAVE</div>
+
+  <div class="subtitle">
+   AN EXPERIMENTAL GAME DEMO
+  </div>
+
+  <div class="cave">⛰️</div>
+
+  <button id="play">▶ JOGAR DEMO</button>
+
+  <div class="version">
+   PROTON ENGINE • BUILD 0.1
   </div>
  </div>
 
@@ -162,6 +254,7 @@ const map=[
 let px=2.5;
 let py=2.5;
 let angle=0;
+let gameStarted=false;
 
 const FOV=Math.PI/3;
 
@@ -183,24 +276,22 @@ function wall(x,y){
  const mx=Math.floor(x);
  const my=Math.floor(y);
 
- return !map[my] || map[my][mx]!=="." ;
+ return !map[my] || map[my][mx]!==".";
 }
 
 function render(){
+
  const w=canvas.width;
  const h=canvas.height;
 
  if(!w||!h)return;
 
- // CÉU
  ctx.fillStyle="#182b3b";
  ctx.fillRect(0,0,w,h/2);
 
- // CHÃO
  ctx.fillStyle="#403b32";
  ctx.fillRect(0,h/2,w,h/2);
 
- // RAYCASTING
  for(let x=0;x<w;x++){
 
   const ray=angle-FOV/2+(x/w)*FOV;
@@ -255,30 +346,42 @@ function render(){
  }
 }
 
-// MOVIMENTO
 function update(){
 
- const speed=0.045;
+ if(gameStarted){
 
- const nx=
-  px+Math.cos(angle)*moveY*speed+
-  Math.cos(angle+Math.PI/2)*moveX*speed;
+  const speed=0.045;
 
- const ny=
-  py+Math.sin(angle)*moveY*speed+
-  Math.sin(angle+Math.PI/2)*moveX*speed;
+  const nx=
+   px+Math.cos(angle)*moveY*speed+
+   Math.cos(angle+Math.PI/2)*moveX*speed;
 
- if(!wall(nx,py))px=nx;
- if(!wall(px,ny))py=ny;
+  const ny=
+   py+Math.sin(angle)*moveY*speed+
+   Math.sin(angle+Math.PI/2)*moveX*speed;
+
+  if(!wall(nx,py))px=nx;
+  if(!wall(px,ny))py=ny;
+ }
 
  render();
-
  requestAnimationFrame(update);
 }
 
 requestAnimationFrame(update);
 
+// INICIAR DEMO
+
+document.getElementById("play").onclick=()=>{
+ gameStarted=true;
+
+ document.getElementById("menu").style.display="none";
+ document.getElementById("hud").style.display="flex";
+ document.getElementById("controls").style.display="flex";
+};
+
 // JOYSTICK
+
 const stick=document.getElementById("stick");
 const knob=document.getElementById("knob");
 
@@ -299,8 +402,7 @@ function joystick(e){
   dy=dy/len*max;
  }
 
- knob.style.transform=
-  `translate(${dx}px,${dy}px)`;
+ knob.style.transform=`translate(${dx}px,${dy}px)`;
 
  moveX=dx/max;
  moveY=-dy/max;
@@ -317,11 +419,9 @@ stick.addEventListener("pointermove",e=>{
 });
 
 function release(){
-
  active=false;
  moveX=0;
  moveY=0;
-
  knob.style.transform="translate(0,0)";
 }
 
@@ -329,6 +429,7 @@ stick.addEventListener("pointerup",release);
 stick.addEventListener("pointercancel",release);
 
 // ROTAÇÃO
+
 document.getElementById("left").onpointerdown=()=>{
  angle-=0.18;
 };
@@ -338,8 +439,8 @@ document.getElementById("right").onpointerdown=()=>{
 };
 
 // TELA CHEIA
-document.getElementById("full").onclick=async()=>{
 
+document.getElementById("full").onclick=async()=>{
  try{
   if(!document.fullscreenElement){
    await document.documentElement.requestFullscreen();
@@ -347,13 +448,12 @@ document.getElementById("full").onclick=async()=>{
    await document.exitFullscreen();
   }
  }catch(e){
-  console.log("Fullscreen indisponível:",e);
+  console.log("Fullscreen indisponível",e);
  }
 };
 
 </script>
 
-<!-- SERVICE WORKER -->
 <script>
 if("serviceWorker" in navigator){
  window.addEventListener("load",()=>{
