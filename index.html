@@ -22,9 +22,7 @@ body {
   touch-action: none;
 }
 
-canvas {
-  display: block;
-}
+canvas { display: block; }
 
 #menu {
   position: fixed;
@@ -99,7 +97,8 @@ button {
   pointer-events: auto;
 }
 
-#move button {
+#move button,
+#look button {
   width: 60px;
   height: 60px;
   padding: 0;
@@ -115,14 +114,6 @@ button {
   display: flex;
   gap: 8px;
   pointer-events: auto;
-}
-
-#look button {
-  width: 60px;
-  height: 60px;
-  padding: 0;
-  border-radius: 50%;
-  background: #25183dcc;
 }
 
 button.active {
@@ -154,14 +145,13 @@ button.active {
 </div>
 
 <div id="hud">
-  <div id="info">BOMB CAVE | DEMO 3D</div>
+  <div id="info">BOMB CAVE | DEMO 3D | MONOLASER</div>
   <div id="cross">+</div>
 
   <div id="move">
     <span></span>
     <button data-move="forward">▲</button>
     <span></span>
-
     <button data-move="left">◀</button>
     <button data-move="backward">▼</button>
     <button data-move="right">▶</button>
@@ -191,7 +181,6 @@ import * as THREE from "three";
 // =================================
 
 const scene = new THREE.Scene();
-
 scene.background = new THREE.Color(0x080611);
 scene.fog = new THREE.Fog(0x080611, 12, 55);
 
@@ -208,30 +197,93 @@ const renderer = new THREE.WebGLRenderer({
   antialias: true
 });
 
-renderer.setSize(
-  window.innerWidth,
-  window.innerHeight
-);
-
-renderer.setPixelRatio(
-  Math.min(window.devicePixelRatio, 1.5)
-);
-
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.15;
 
 document.body.appendChild(renderer.domElement);
+
+// =================================
+// TEXTURAS PROCEDURAIS
+// =================================
+
+function makeTexture(base, variation, lines = false) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 256;
+  canvas.height = 256;
+
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = base;
+  ctx.fillRect(0, 0, 256, 256);
+
+  for (let i = 0; i < 1800; i++) {
+    const x = Math.random() * 256;
+    const y = Math.random() * 256;
+    const alpha = Math.random() * 0.13;
+
+    ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+
+    if (lines) {
+      ctx.fillRect(x, y, 35 + Math.random() * 50, 1);
+    } else {
+      ctx.fillRect(x, y, 2, 2);
+    }
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  return texture;
+}
+
+const steelTexture = makeTexture("#777d83", 20, true);
+const plasticTexture = makeTexture("#17191d", 20, false);
+
+// =================================
+// MATERIAIS
+// =================================
+
+const steel = new THREE.MeshStandardMaterial({
+  color: 0xb0b5bb,
+  map: steelTexture,
+  metalness: 0.9,
+  roughness: 0.3
+});
+
+const darkSteel = new THREE.MeshStandardMaterial({
+  color: 0x414750,
+  map: steelTexture,
+  metalness: 0.85,
+  roughness: 0.4
+});
+
+const blackPlastic = new THREE.MeshStandardMaterial({
+  color: 0x24262a,
+  map: plasticTexture,
+  roughness: 0.88,
+  metalness: 0.05
+});
+
+const purpleGlow = new THREE.MeshStandardMaterial({
+  color: 0x8b36ff,
+  emissive: 0x6414ff,
+  emissiveIntensity: 2.2,
+  metalness: 0.3,
+  roughness: 0.25
+});
 
 // =================================
 // ILUMINAÇÃO
 // =================================
 
-const ambient = new THREE.HemisphereLight(
+scene.add(new THREE.HemisphereLight(
   0xb9aaff,
   0x201323,
   1.5
-);
-
-scene.add(ambient);
+));
 
 const coreLight = new THREE.PointLight(
   0xa33cff,
@@ -270,7 +322,6 @@ const ceiling = new THREE.Mesh(
 
 ceiling.rotation.x = Math.PI / 2;
 ceiling.position.y = 7;
-
 scene.add(ceiling);
 
 // =================================
@@ -361,49 +412,219 @@ for (let i = 0; i < 14; i++) {
 // NÚCLEO PRINCIPAL
 // =================================
 
-const coreMaterial = new THREE.MeshStandardMaterial({
-  color: 0x9b35ff,
-  emissive: 0x7a13ff,
-  emissiveIntensity: 3,
-  roughness: 0.25,
-  metalness: 0.2
-});
-
 const core = new THREE.Mesh(
   new THREE.SphereGeometry(2.2, 48, 48),
-  coreMaterial
+  new THREE.MeshStandardMaterial({
+    color: 0x9b35ff,
+    emissive: 0x7a13ff,
+    emissiveIntensity: 3,
+    roughness: 0.25,
+    metalness: 0.2
+  })
 );
 
 core.position.set(0, 3, -12);
 scene.add(core);
 
-// ANEL DE ENERGIA
-
 const ring = new THREE.Mesh(
   new THREE.TorusGeometry(3, 0.07, 12, 80),
-  new THREE.MeshBasicMaterial({
-    color: 0xd6a0ff
-  })
+  new THREE.MeshBasicMaterial({ color: 0xd6a0ff })
 );
 
 ring.position.copy(core.position);
 ring.rotation.x = Math.PI / 2.5;
-
 scene.add(ring);
-
-// SEGUNDO ANEL
 
 const ring2 = new THREE.Mesh(
   new THREE.TorusGeometry(2.7, 0.035, 10, 80),
-  new THREE.MeshBasicMaterial({
-    color: 0x8d35ff
-  })
+  new THREE.MeshBasicMaterial({ color: 0x8d35ff })
 );
 
 ring2.position.copy(core.position);
 ring2.rotation.y = Math.PI / 2;
-
 scene.add(ring2);
+
+// =================================
+// MONOLASER 3D
+// =================================
+
+const monolaser = new THREE.Group();
+
+// Função para construir peças da arma
+
+function gunPart(
+  geometry,
+  material,
+  x,
+  y,
+  z,
+  parent = monolaser
+) {
+  const mesh = new THREE.Mesh(geometry, material);
+
+  mesh.position.set(x, y, z);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+
+  parent.add(mesh);
+  return mesh;
+}
+
+// Corpo principal retangular
+
+gunPart(
+  new THREE.BoxGeometry(0.42, 0.25, 0.48),
+  steel,
+  0, 0, -0.12
+);
+
+// Parte superior do corpo
+
+gunPart(
+  new THREE.BoxGeometry(0.34, 0.035, 0.38),
+  darkSteel,
+  0, 0.145, -0.12
+);
+
+// Placa lateral esquerda e direita
+
+for (const side of [-1, 1]) {
+  gunPart(
+    new THREE.BoxGeometry(0.025, 0.13, 0.30),
+    darkSteel,
+    side * 0.215, 0, -0.12
+  );
+}
+
+// Cano principal
+
+const barrel = gunPart(
+  new THREE.CylinderGeometry(0.085, 0.085, 0.42, 32),
+  steel,
+  0, 0.015, -0.53
+);
+
+barrel.rotation.x = Math.PI / 2;
+
+// Anéis metálicos do cano
+
+for (let i = 0; i < 5; i++) {
+  const band = gunPart(
+    new THREE.CylinderGeometry(0.092, 0.092, 0.018, 32),
+    darkSteel,
+    0, 0.015, -0.37 - i * 0.075
+  );
+
+  band.rotation.x = Math.PI / 2;
+}
+
+// Bocal frontal
+
+const muzzle = gunPart(
+  new THREE.CylinderGeometry(0.115, 0.115, 0.055, 32),
+  darkSteel,
+  0, 0.015, -0.755
+);
+
+muzzle.rotation.x = Math.PI / 2;
+
+// Abertura luminosa
+
+const muzzleGlowMesh = gunPart(
+  new THREE.CylinderGeometry(0.073, 0.073, 0.058, 32),
+  purpleGlow,
+  0, 0.015, -0.76
+);
+
+muzzleGlowMesh.rotation.x = Math.PI / 2;
+
+// Centro escuro do bocal
+
+const muzzleCenter = gunPart(
+  new THREE.CylinderGeometry(0.043, 0.043, 0.06, 24),
+  blackPlastic,
+  0, 0.015, -0.765
+);
+
+muzzleCenter.rotation.x = Math.PI / 2;
+
+// Pino superior
+
+gunPart(
+  new THREE.BoxGeometry(0.075, 0.09, 0.075),
+  steel,
+  0.12, 0.19, -0.12
+);
+
+// Empunhadura angular de plástico
+
+const gripShape = new THREE.Shape();
+
+gripShape.moveTo(-0.16, 0.10);
+gripShape.lineTo(0.16, 0.10);
+gripShape.lineTo(0.22, -0.12);
+gripShape.lineTo(0.10, -0.38);
+gripShape.lineTo(-0.10, -0.43);
+gripShape.lineTo(-0.28, -0.20);
+gripShape.closePath();
+
+const gripGeometry = new THREE.ExtrudeGeometry(gripShape, {
+  depth: 0.20,
+  bevelEnabled: true,
+  bevelSegments: 3,
+  bevelSize: 0.025,
+  bevelThickness: 0.025
+});
+
+gunPart(
+  gripGeometry,
+  blackPlastic,
+  0, -0.17, -0.12
+);
+
+// Ranhuras no cabo
+
+for (let i = 0; i < 4; i++) {
+  gunPart(
+    new THREE.BoxGeometry(0.205, 0.018, 0.025),
+    darkSteel,
+    0, -0.32 - i * 0.045, -0.015
+  );
+}
+
+// Aro do gatilho
+
+gunPart(
+  new THREE.TorusGeometry(0.105, 0.018, 10, 28),
+  steel,
+  0, -0.19, -0.30
+);
+
+// Gatilho
+
+gunPart(
+  new THREE.BoxGeometry(0.035, 0.12, 0.035),
+  darkSteel,
+  0, -0.19, -0.30
+);
+
+// Pequeno detalhe lateral
+
+gunPart(
+  new THREE.BoxGeometry(0.025, 0.06, 0.12),
+  steel,
+  0.23, 0.015, -0.12
+);
+
+// Posição da arma na câmera
+
+monolaser.position.set(0.36, -0.34, -0.72);
+monolaser.rotation.set(0, 0, 0);
+monolaser.scale.setScalar(0.8);
+
+// A arma acompanha a câmera
+
+camera.add(monolaser);
 
 // =================================
 // CONTROLES
@@ -418,15 +639,10 @@ const keys = {
   turnRight: false
 };
 
-// Ativa e desativa botões com captura do toque
-
 function bindButton(button, key) {
-
   button.addEventListener("pointerdown", event => {
     event.preventDefault();
-
     button.setPointerCapture(event.pointerId);
-
     keys[key] = true;
     button.classList.add("active");
   });
@@ -443,13 +659,9 @@ function bindButton(button, key) {
   button.addEventListener("lostpointercapture", release);
 }
 
-// Botões de movimentação
-
 document.querySelectorAll("[data-move]").forEach(button => {
   bindButton(button, button.dataset.move);
 });
-
-// Botões de rotação
 
 bindButton(
   document.getElementById("turnLeft"),
@@ -462,20 +674,17 @@ bindButton(
 );
 
 // =================================
-// MOVIMENTAÇÃO CORRIGIDA
+// MOVIMENTAÇÃO
 // =================================
 
 let angle = 0;
 
 const direction = new THREE.Vector3();
 
-const MOVE_SPEED = 5.0;
+const MOVE_SPEED = 5;
 const TURN_SPEED = 2.2;
 
 function updateMovement(deltaTime) {
-
-  // ROTAÇÃO DA CÂMERA
-
   if (keys.turnLeft) {
     angle += TURN_SPEED * deltaTime;
   }
@@ -486,8 +695,6 @@ function updateMovement(deltaTime) {
 
   camera.rotation.set(0, angle, 0);
 
-  // DIREÇÕES DE MOVIMENTO
-
   const moveY =
     (keys.forward ? 1 : 0) -
     (keys.backward ? 1 : 0);
@@ -496,23 +703,15 @@ function updateMovement(deltaTime) {
     (keys.right ? 1 : 0) -
     (keys.left ? 1 : 0);
 
-  // FÓRMULA CORRIGIDA:
-  // O movimento acompanha a rotação da câmera.
-
   direction.set(
     -Math.sin(angle) * moveY +
      Math.cos(angle) * moveX,
-
     0,
-
     -Math.cos(angle) * moveY -
      Math.sin(angle) * moveX
   );
 
-  // NORMALIZA PARA EVITAR DIAGONAL MAIS RÁPIDA
-
   if (direction.lengthSq() > 0) {
-
     direction.normalize();
 
     camera.position.addScaledVector(
@@ -520,8 +719,6 @@ function updateMovement(deltaTime) {
       MOVE_SPEED * deltaTime
     );
   }
-
-  // LIMITES DA CAVERNA
 
   camera.position.x = THREE.MathUtils.clamp(
     camera.position.x,
@@ -545,37 +742,40 @@ function updateMovement(deltaTime) {
 const clock = new THREE.Clock();
 
 function animate() {
-
   requestAnimationFrame(animate);
 
-  // Evita saltos grandes se o celular travar
   const deltaTime = Math.min(clock.getDelta(), 0.05);
-
   const time = clock.elapsedTime;
 
   // Pulsação do núcleo
 
   const pulse = 1 + Math.sin(time * 2) * 0.035;
-
   core.scale.setScalar(pulse);
-
-  // Rotação do núcleo e anéis
 
   core.rotation.y = time * 0.3;
 
   ring.rotation.z = time * 0.5;
   ring2.rotation.x = time * 0.4;
 
-  // Luz pulsante
+  coreLight.intensity = 40 + Math.sin(time * 3) * 8;
 
-  coreLight.intensity =
-    40 + Math.sin(time * 3) * 8;
-
-  // Atualiza personagem
+  // Movimento da câmera
 
   updateMovement(deltaTime);
 
-  // Renderiza cena
+  // Pequena oscilação da arma
+
+  const moving =
+    keys.forward ||
+    keys.backward ||
+    keys.left ||
+    keys.right;
+
+  const bob = moving ? Math.sin(time * 9) * 0.008 : 0;
+
+  monolaser.position.y = -0.34 + bob;
+
+  // Renderização
 
   renderer.render(scene, camera);
 }
@@ -587,11 +787,8 @@ animate();
 // =================================
 
 document.getElementById("play").addEventListener("click", () => {
-
   document.getElementById("menu").style.display = "none";
-
   document.getElementById("hud").style.display = "block";
-
 });
 
 // =================================
@@ -599,17 +796,13 @@ document.getElementById("play").addEventListener("click", () => {
 // =================================
 
 window.addEventListener("resize", () => {
-
-  camera.aspect =
-    window.innerWidth / window.innerHeight;
-
+  camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
 
   renderer.setSize(
     window.innerWidth,
     window.innerHeight
   );
-
 });
 
 // =================================
@@ -617,27 +810,21 @@ window.addEventListener("resize", () => {
 // =================================
 
 if ("serviceWorker" in navigator) {
-
   navigator.serviceWorker.register("./sw.js")
     .catch(error => {
       console.warn("Service Worker:", error);
     });
-
 }
 
 // =================================
-// ERROS DE CARREGAMENTO
+// ERROS
 // =================================
 
 window.addEventListener("error", event => {
-
   const box = document.getElementById("loadingError");
 
   box.style.display = "block";
-
-  box.textContent =
-    "Erro ao carregar: " + event.message;
-
+  box.textContent = "Erro ao carregar: " + event.message;
 });
 
 </script>
