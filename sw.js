@@ -1,64 +1,72 @@
 
-const CACHE_NAME = "proton-engine-v1";
-
-const FILES = [
+const CACHE_NAME = "proton-engine-v2";
+const FILES_TO_CACHE = [
   "./",
   "./index.html",
   "./manifest.json"
 ];
 
-// Instalação
-self.addEventListener("install", event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(FILES);
-    })
-  );
-
-  self.skipWaiting();
+self.addEventListener("install", (event) => {
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    await cache.addAll(FILES_TO_CACHE);
+    await self.skipWaiting();
+  })());
 });
 
-// Ativação
-self.addEventListener("activate", event => {
-  event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(
-        keys
-          .filter(key => key !== CACHE_NAME)
-          .map(key => caches.delete(key))
-      )
-    )
-  );
+self.addEventListener("activate", (event) => {
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
 
-  self.clients.claim();
+    await Promise.all(
+      keys
+        .filter(key =>
+          key.startsWith("proton-engine-") &&
+          key !== CACHE_NAME
+        )
+        .map(key => caches.delete(key))
+    );
+
+    await self.clients.claim();
+  })());
 });
 
-// Funcionamento offline
-self.addEventListener("fetch", event => {
+self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
 
-  event.respondWith(
-    caches.match(event.request).then(cached => {
-      if (cached) return cached;
+  const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin) return;
 
-      return fetch(event.request).then(response => {
-        if (
-          response.ok &&
-          new URL(event.request.url).origin === self.location.origin
-        ) {
-          const copy = response.clone();
+  if (event.request.mode === "navigate") {
+    event.respondWith((async () => {
+      try {
+        const response = await fetch(event.request);
 
-          caches.open(CACHE_NAME).then(cache => {
-            cache.put(event.request, copy);
-          });
+        if (response.ok) {
+          const cache = await caches.open(CACHE_NAME);
+          await cache.put("./index.html", response.clone());
         }
 
         return response;
-      });
-    }).catch(() => {
-      if (event.request.mode === "navigate") {
-        return caches.match("./index.html");
+      } catch {
+        return await caches.match("./index.html");
       }
-    })
-  );
+    })());
+
+    return;
+  }
+
+  event.respondWith((async () => {
+    const cached = await caches.match(event.request);
+    if (cached) return cached;
+
+    const response = await fetch(event.request);
+
+    if (response.ok) {
+      const cache = await caches.open(CACHE_NAME);
+      await cache.put(event.request, response.clone());
+    }
+
+    return response;
+  })());
 });
