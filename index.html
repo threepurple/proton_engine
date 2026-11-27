@@ -4,23 +4,147 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#080611">
 <title>BOMB CAVE</title>
+
 <style>
-* { box-sizing:border-box }
-body { margin:0; overflow:hidden; background:#080611; color:white; font-family:Arial; touch-action:none }
-canvas { display:block }
-#menu { position:fixed; inset:0; z-index:5; display:flex; flex-direction:column; align-items:center; justify-content:center; background:radial-gradient(circle,#382052,#080611 75%) }
-h1 { color:#d2a0ff; font-size:42px; letter-spacing:5px; text-shadow:0 0 20px #a044ff }
-button { color:white; background:#28163e; border:1px solid #b56aff; border-radius:12px; padding:14px 20px; font-size:18px; touch-action:none }
-#hud { display:none; position:fixed; inset:0; pointer-events:none }
-#info { position:absolute; top:15px; left:15px; text-shadow:0 2px 4px black }
-#cross { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:25px }
-#move { position:absolute; bottom:20px; left:15px; display:grid; grid-template-columns:60px 60px 60px; gap:5px; pointer-events:auto }
-#move button { width:60px; height:60px; padding:0; border-radius:50% }
-#look { position:absolute; right:15px; bottom:25px; display:flex; gap:8px; pointer-events:auto }
-#look button { width:60px; height:60px; padding:0; border-radius:50% }
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+  background: #080611;
+  color: white;
+  font-family: Arial, sans-serif;
+  touch-action: none;
+}
+
+canvas {
+  display: block;
+}
+
+#menu {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle, #382052, #080611 75%);
+}
+
+h1 {
+  color: #d2a0ff;
+  font-size: 42px;
+  letter-spacing: 5px;
+  text-shadow: 0 0 20px #a044ff;
+  text-align: center;
+}
+
+#menu p {
+  color: #c7b5dc;
+  letter-spacing: 3px;
+}
+
+button {
+  color: white;
+  background: #28163e;
+  border: 1px solid #b56aff;
+  border-radius: 12px;
+  font-size: 18px;
+  touch-action: none;
+  user-select: none;
+}
+
+#play {
+  padding: 15px 25px;
+  margin-top: 20px;
+}
+
+#hud {
+  display: none;
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+#info {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  font-size: 13px;
+  text-shadow: 0 2px 4px black;
+}
+
+#cross {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 25px;
+  text-shadow: 0 0 5px black;
+}
+
+#move {
+  position: absolute;
+  bottom: 20px;
+  left: 15px;
+  display: grid;
+  grid-template-columns: 60px 60px 60px;
+  gap: 5px;
+  pointer-events: auto;
+}
+
+#move button {
+  width: 60px;
+  height: 60px;
+  padding: 0;
+  border-radius: 50%;
+  background: #25183dcc;
+  font-size: 22px;
+}
+
+#look {
+  position: absolute;
+  right: 15px;
+  bottom: 25px;
+  display: flex;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+#look button {
+  width: 60px;
+  height: 60px;
+  padding: 0;
+  border-radius: 50%;
+  background: #25183dcc;
+}
+
+button.active {
+  background: #7841a8 !important;
+  border-color: #e0baff;
+}
+
+#loadingError {
+  display: none;
+  position: fixed;
+  z-index: 10;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  padding: 12px;
+  background: #681e32;
+  border-radius: 8px;
+  font-size: 13px;
+}
 </style>
 </head>
+
 <body>
 
 <div id="menu">
@@ -32,17 +156,24 @@ button { color:white; background:#28163e; border:1px solid #b56aff; border-radiu
 <div id="hud">
   <div id="info">BOMB CAVE | DEMO 3D</div>
   <div id="cross">+</div>
+
   <div id="move">
-    <span></span><button data-move="forward">▲</button><span></span>
+    <span></span>
+    <button data-move="forward">▲</button>
+    <span></span>
+
     <button data-move="left">◀</button>
     <button data-move="backward">▼</button>
     <button data-move="right">▶</button>
   </div>
+
   <div id="look">
     <button id="turnLeft">↶</button>
     <button id="turnRight">↷</button>
   </div>
 </div>
+
+<div id="loadingError"></div>
 
 <script type="importmap">
 {
@@ -55,161 +186,307 @@ button { color:white; background:#28163e; border:1px solid #b56aff; border-radiu
 <script type="module">
 import * as THREE from "three";
 
+// =================================
+// CONFIGURAÇÃO DA CENA
+// =================================
+
 const scene = new THREE.Scene();
+
 scene.background = new THREE.Color(0x080611);
 scene.fog = new THREE.Fog(0x080611, 12, 55);
 
 const camera = new THREE.PerspectiveCamera(
-  75, innerWidth / innerHeight, 0.1, 100
+  75,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  100
 );
+
 camera.position.set(0, 1.7, 5);
 
-const renderer = new THREE.WebGLRenderer({ antialias:true });
-renderer.setSize(innerWidth, innerHeight);
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+const renderer = new THREE.WebGLRenderer({
+  antialias: true
+});
+
+renderer.setSize(
+  window.innerWidth,
+  window.innerHeight
+);
+
+renderer.setPixelRatio(
+  Math.min(window.devicePixelRatio, 1.5)
+);
+
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
 document.body.appendChild(renderer.domElement);
 
+// =================================
 // ILUMINAÇÃO
-scene.add(new THREE.HemisphereLight(0xb9aaff, 0x201323, 1.5));
+// =================================
 
-const light = new THREE.PointLight(0xa33cff, 45, 45);
-light.position.set(0, 4, -12);
-scene.add(light);
+const ambient = new THREE.HemisphereLight(
+  0xb9aaff,
+  0x201323,
+  1.5
+);
 
+scene.add(ambient);
+
+const coreLight = new THREE.PointLight(
+  0xa33cff,
+  45,
+  45
+);
+
+coreLight.position.set(0, 4, -12);
+scene.add(coreLight);
+
+// =================================
 // CHÃO
+// =================================
+
 const floor = new THREE.Mesh(
   new THREE.PlaneGeometry(60, 60),
-  new THREE.MeshStandardMaterial({ color:0x302a38, roughness:1 })
+  new THREE.MeshStandardMaterial({
+    color: 0x302a38,
+    roughness: 1
+  })
 );
+
 floor.rotation.x = -Math.PI / 2;
 scene.add(floor);
 
+// =================================
 // TETO
+// =================================
+
 const ceiling = new THREE.Mesh(
   new THREE.PlaneGeometry(60, 60),
-  new THREE.MeshStandardMaterial({ color:0x100d19 })
+  new THREE.MeshStandardMaterial({
+    color: 0x100d19
+  })
 );
+
 ceiling.rotation.x = Math.PI / 2;
 ceiling.position.y = 7;
+
 scene.add(ceiling);
 
+// =================================
 // PAREDES
-const wallMat = new THREE.MeshStandardMaterial({ color:0x292333 });
+// =================================
 
-function makeWall(x,y,z,sx,sy,sz) {
-  const m = new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz), wallMat);
-  m.position.set(x,y,z);
-  scene.add(m);
+const wallMaterial = new THREE.MeshStandardMaterial({
+  color: 0x292333,
+  roughness: 1
+});
+
+function makeWall(x, y, z, sx, sy, sz) {
+  const wall = new THREE.Mesh(
+    new THREE.BoxGeometry(sx, sy, sz),
+    wallMaterial
+  );
+
+  wall.position.set(x, y, z);
+  scene.add(wall);
 }
-makeWall(0,3.5,-30,60,7,1);
-makeWall(0,3.5,30,60,7,1);
-makeWall(-30,3.5,0,1,7,60);
-makeWall(30,3.5,0,1,7,60);
 
+makeWall(0, 3.5, -30, 60, 7, 1);
+makeWall(0, 3.5, 30, 60, 7, 1);
+makeWall(-30, 3.5, 0, 1, 7, 60);
+makeWall(30, 3.5, 0, 1, 7, 60);
+
+// =================================
 // ROCHAS
-const rockMat = new THREE.MeshStandardMaterial({ color:0x51465d });
-for(let i=0;i<65;i++){
+// =================================
+
+const rockMaterial = new THREE.MeshStandardMaterial({
+  color: 0x51465d,
+  roughness: 1
+});
+
+for (let i = 0; i < 65; i++) {
   const rock = new THREE.Mesh(
-    new THREE.DodecahedronGeometry(0.4+Math.random(),0),
-    rockMat
+    new THREE.DodecahedronGeometry(
+      0.4 + Math.random(),
+      0
+    ),
+    rockMaterial
   );
+
   rock.position.set(
-    (Math.random()-0.5)*45,
+    (Math.random() - 0.5) * 45,
     0.3,
-    (Math.random()-0.5)*45
+    (Math.random() - 0.5) * 45
   );
-  rock.rotation.set(Math.random()*3,Math.random()*3,Math.random()*3);
+
+  rock.rotation.set(
+    Math.random() * 3,
+    Math.random() * 3,
+    Math.random() * 3
+  );
+
   scene.add(rock);
 }
 
+// =================================
 // CRISTAIS
-const crystalMat = new THREE.MeshStandardMaterial({
-  color:0x9c43ff,
-  emissive:0x7b18ff,
-  emissiveIntensity:2
+// =================================
+
+const crystalMaterial = new THREE.MeshStandardMaterial({
+  color: 0x9c43ff,
+  emissive: 0x7b18ff,
+  emissiveIntensity: 2
 });
-for(let i=0;i<14;i++){
+
+for (let i = 0; i < 14; i++) {
   const crystal = new THREE.Mesh(
-    new THREE.OctahedronGeometry(0.5+Math.random()*0.5),
-    crystalMat
+    new THREE.OctahedronGeometry(
+      0.5 + Math.random() * 0.5
+    ),
+    crystalMaterial
   );
+
   crystal.position.set(
-    (Math.random()-0.5)*36,
-    1+Math.random()*2,
-    (Math.random()-0.5)*36
+    (Math.random() - 0.5) * 36,
+    1 + Math.random() * 2,
+    (Math.random() - 0.5) * 36
   );
+
   scene.add(crystal);
 }
 
-// NÚCLEO
-const core = new THREE.Mesh(
-  new THREE.SphereGeometry(2.2,32,32),
-  new THREE.MeshStandardMaterial({
-    color:0x9b35ff,
-    emissive:0x7a13ff,
-    emissiveIntensity:3,
-    roughness:0.25,
-    metalness:0.2
-  })
-);
-core.position.set(0,3,-12);
-scene.add(core);
+// =================================
+// NÚCLEO PRINCIPAL
+// =================================
 
-const ring = new THREE.Mesh(
-  new THREE.TorusGeometry(3,0.07,12,80),
-  new THREE.MeshBasicMaterial({ color:0xd6a0ff })
-);
-ring.position.copy(core.position);
-ring.rotation.x = Math.PI/2.5;
-scene.add(ring);
-
-// CONTROLES
-const keys = {
-  forward:false,
-  backward:false,
-  left:false,
-  right:false,
-  turnLeft:false,
-  turnRight:false
-};
-
-document.querySelectorAll("[data-move]").forEach(btn=>{
-  const key = btn.dataset.move;
-  btn.addEventListener("pointerdown",e=>{
-    e.preventDefault();
-    keys[key]=true;
-  });
-  const release=()=>{
-    keys[key]=false;
-  };
-  btn.addEventListener("pointerup",release);
-  btn.addEventListener("pointercancel",release);
-  btn.addEventListener("pointerleave",release);
+const coreMaterial = new THREE.MeshStandardMaterial({
+  color: 0x9b35ff,
+  emissive: 0x7a13ff,
+  emissiveIntensity: 3,
+  roughness: 0.25,
+  metalness: 0.2
 });
 
-function bindTurn(id,key){
-  const btn=document.getElementById(id);
-  btn.addEventListener("pointerdown",e=>{
-    e.preventDefault();
-    keys[key]=true;
-  });
-  const release=()=>keys[key]=false;
-  btn.addEventListener("pointerup",release);
-  btn.addEventListener("pointercancel",release);
-  btn.addEventListener("pointerleave",release);
-}
-bindTurn("turnLeft","turnLeft");
-bindTurn("turnRight","turnRight");
+const core = new THREE.Mesh(
+  new THREE.SphereGeometry(2.2, 48, 48),
+  coreMaterial
+);
 
-// ROTAÇÃO E MOVIMENTO CORRIGIDOS
-let angle=0;
+core.position.set(0, 3, -12);
+scene.add(core);
+
+// ANEL DE ENERGIA
+
+const ring = new THREE.Mesh(
+  new THREE.TorusGeometry(3, 0.07, 12, 80),
+  new THREE.MeshBasicMaterial({
+    color: 0xd6a0ff
+  })
+);
+
+ring.position.copy(core.position);
+ring.rotation.x = Math.PI / 2.5;
+
+scene.add(ring);
+
+// SEGUNDO ANEL
+
+const ring2 = new THREE.Mesh(
+  new THREE.TorusGeometry(2.7, 0.035, 10, 80),
+  new THREE.MeshBasicMaterial({
+    color: 0x8d35ff
+  })
+);
+
+ring2.position.copy(core.position);
+ring2.rotation.y = Math.PI / 2;
+
+scene.add(ring2);
+
+// =================================
+// CONTROLES
+// =================================
+
+const keys = {
+  forward: false,
+  backward: false,
+  left: false,
+  right: false,
+  turnLeft: false,
+  turnRight: false
+};
+
+// Ativa e desativa botões com captura do toque
+
+function bindButton(button, key) {
+
+  button.addEventListener("pointerdown", event => {
+    event.preventDefault();
+
+    button.setPointerCapture(event.pointerId);
+
+    keys[key] = true;
+    button.classList.add("active");
+  });
+
+  function release(event) {
+    if (event) event.preventDefault();
+
+    keys[key] = false;
+    button.classList.remove("active");
+  }
+
+  button.addEventListener("pointerup", release);
+  button.addEventListener("pointercancel", release);
+  button.addEventListener("lostpointercapture", release);
+}
+
+// Botões de movimentação
+
+document.querySelectorAll("[data-move]").forEach(button => {
+  bindButton(button, button.dataset.move);
+});
+
+// Botões de rotação
+
+bindButton(
+  document.getElementById("turnLeft"),
+  "turnLeft"
+);
+
+bindButton(
+  document.getElementById("turnRight"),
+  "turnRight"
+);
+
+// =================================
+// MOVIMENTAÇÃO CORRIGIDA
+// =================================
+
+let angle = 0;
+
 const direction = new THREE.Vector3();
 
-function updateMovement(){
-  if(keys.turnLeft) angle += 0.035;
-  if(keys.turnRight) angle -= 0.035;
+const MOVE_SPEED = 5.0;
+const TURN_SPEED = 2.2;
 
-  camera.rotation.y=angle;
+function updateMovement(deltaTime) {
+
+  // ROTAÇÃO DA CÂMERA
+
+  if (keys.turnLeft) {
+    angle += TURN_SPEED * deltaTime;
+  }
+
+  if (keys.turnRight) {
+    angle -= TURN_SPEED * deltaTime;
+  }
+
+  camera.rotation.set(0, angle, 0);
+
+  // DIREÇÕES DE MOVIMENTO
 
   const moveY =
     (keys.forward ? 1 : 0) -
@@ -219,57 +496,150 @@ function updateMovement(){
     (keys.right ? 1 : 0) -
     (keys.left ? 1 : 0);
 
+  // FÓRMULA CORRIGIDA:
+  // O movimento acompanha a rotação da câmera.
+
   direction.set(
-    -Math.sin(angle)*moveY + Math.cos(angle)*moveX,
+    -Math.sin(angle) * moveY +
+     Math.cos(angle) * moveX,
+
     0,
-    -Math.cos(angle)*moveY - Math.sin(angle)*moveX
+
+    -Math.cos(angle) * moveY -
+     Math.sin(angle) * moveX
   );
 
-  if(direction.lengthSq()>0){
+  // NORMALIZA PARA EVITAR DIAGONAL MAIS RÁPIDA
+
+  if (direction.lengthSq() > 0) {
+
     direction.normalize();
-    camera.position.addScaledVector(direction,0.09);
+
+    camera.position.addScaledVector(
+      direction,
+      MOVE_SPEED * deltaTime
+    );
   }
 
-  // Limites da caverna
-  camera.position.x=THREE.MathUtils.clamp(camera.position.x,-28,28);
-  camera.position.z=THREE.MathUtils.clamp(camera.position.z,-28,28);
-  camera.position.y=1.7;
+  // LIMITES DA CAVERNA
+
+  camera.position.x = THREE.MathUtils.clamp(
+    camera.position.x,
+    -28,
+    28
+  );
+
+  camera.position.z = THREE.MathUtils.clamp(
+    camera.position.z,
+    -28,
+    28
+  );
+
+  camera.position.y = 1.7;
 }
 
+// =================================
 // ANIMAÇÃO
-const clock=new THREE.Clock();
+// =================================
 
-function animate(){
+const clock = new THREE.Clock();
+
+function animate() {
+
   requestAnimationFrame(animate);
 
-  const t=clock.getElapsedTime();
-  core.scale.setScalar(1+Math.sin(t*2)*0.035);
-  core.rotation.y=t*0.3;
-  ring.rotation.z=t*0.5;
-  light.intensity=40+Math.sin(t*3)*8;
+  // Evita saltos grandes se o celular travar
+  const deltaTime = Math.min(clock.getDelta(), 0.05);
 
-  updateMovement();
-  renderer.render(scene,camera);
+  const time = clock.elapsedTime;
+
+  // Pulsação do núcleo
+
+  const pulse = 1 + Math.sin(time * 2) * 0.035;
+
+  core.scale.setScalar(pulse);
+
+  // Rotação do núcleo e anéis
+
+  core.rotation.y = time * 0.3;
+
+  ring.rotation.z = time * 0.5;
+  ring2.rotation.x = time * 0.4;
+
+  // Luz pulsante
+
+  coreLight.intensity =
+    40 + Math.sin(time * 3) * 8;
+
+  // Atualiza personagem
+
+  updateMovement(deltaTime);
+
+  // Renderiza cena
+
+  renderer.render(scene, camera);
 }
+
 animate();
 
-// INICIAR
-document.getElementById("play").addEventListener("click",()=>{
-  document.getElementById("menu").style.display="none";
-  document.getElementById("hud").style.display="block";
+// =================================
+// INICIAR JOGO
+// =================================
+
+document.getElementById("play").addEventListener("click", () => {
+
+  document.getElementById("menu").style.display = "none";
+
+  document.getElementById("hud").style.display = "block";
+
 });
 
-// REDIMENSIONAR
-window.addEventListener("resize",()=>{
-  camera.aspect=innerWidth/innerHeight;
+// =================================
+// REDIMENSIONAR TELA
+// =================================
+
+window.addEventListener("resize", () => {
+
+  camera.aspect =
+    window.innerWidth / window.innerHeight;
+
   camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth,innerHeight);
+
+  renderer.setSize(
+    window.innerWidth,
+    window.innerHeight
+  );
+
 });
 
+// =================================
 // SERVICE WORKER
-if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("./sw.js").catch(console.error);
+// =================================
+
+if ("serviceWorker" in navigator) {
+
+  navigator.serviceWorker.register("./sw.js")
+    .catch(error => {
+      console.warn("Service Worker:", error);
+    });
+
 }
+
+// =================================
+// ERROS DE CARREGAMENTO
+// =================================
+
+window.addEventListener("error", event => {
+
+  const box = document.getElementById("loadingError");
+
+  box.style.display = "block";
+
+  box.textContent =
+    "Erro ao carregar: " + event.message;
+
+});
+
 </script>
 </body>
 </html>
