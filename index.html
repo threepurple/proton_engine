@@ -3,399 +3,306 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#08110f">
-<title>Bomb Cave</title>
+<title>BOMB CAVE</title>
 <link rel="manifest" href="./manifest.json">
 
 <style>
 *{box-sizing:border-box}
-
 body{
- margin:0;
- background:#08110f;
- color:#65efad;
- font-family:Arial,sans-serif;
- overflow:hidden;
- touch-action:none;
+ margin:0;background:#080d12;color:white;
+ font-family:Arial,sans-serif;overflow:hidden;
+ touch-action:none
 }
-
 header{
- height:55px;
- background:#101c19;
- display:flex;
- align-items:center;
- justify-content:space-between;
- padding:0 15px;
- border-bottom:1px solid #245440;
+ height:48px;background:#101c19;
+ display:flex;align-items:center;
+ justify-content:space-between;padding:0 12px
 }
-
-.logo{font-weight:bold;letter-spacing:2px}
-
 button{
- background:#17372c;
- color:#70ffc1;
- border:1px solid #286849;
- border-radius:12px;
- padding:12px;
- font-weight:bold;
+ background:#174a38;color:white;
+ border:1px solid #50d99b;
+ border-radius:8px;padding:12px;font-weight:bold
 }
-
-main{
- height:calc(100dvh - 55px);
- display:flex;
- flex-direction:column;
- position:relative;
-}
-
-#game{
- width:100%;
- flex:1;
- min-height:0;
- display:block;
- background:#101820;
-}
-
-.hud{
- display:none;
- justify-content:space-between;
- padding:8px 14px;
- background:#101c19;
- font-size:12px;
-}
-
-.controls{
- display:none;
- height:145px;
- background:#0d1714;
- justify-content:space-around;
- align-items:center;
- padding:10px;
-}
-
-#stick{
- width:112px;
- height:112px;
- border-radius:50%;
- background:#19352b;
- border:2px solid #347b58;
- position:relative;
- touch-action:none;
-}
-
-#knob{
- width:43px;
- height:43px;
- border-radius:50%;
- background:#54efb1;
- position:absolute;
- left:32px;
- top:32px;
- pointer-events:none;
-}
-
-.look{display:flex;gap:9px}
-.action{
- width:58px;
- height:58px;
- border-radius:50%;
- font-size:20px;
-}
-
-/* MENU */
-
+main{height:calc(100dvh - 48px);position:relative}
+#game{width:100%;height:100%;display:block}
 #menu{
- position:absolute;
- inset:0;
- z-index:5;
- background:
- linear-gradient(180deg,rgba(4,12,10,.72),rgba(3,10,8,.96)),
- repeating-linear-gradient(
-  0deg,
-  transparent 0px,
-  transparent 3px,
-  rgba(100,255,170,.035) 4px
- );
- display:flex;
- flex-direction:column;
- justify-content:center;
- align-items:center;
- padding:25px;
- text-align:center;
+ position:absolute;inset:0;z-index:5;
+ display:flex;align-items:center;
+ justify-content:center;flex-direction:column;
+ background:linear-gradient(#06110caa,#06110cee);
+ gap:20px;text-align:center
 }
-
-.studio{
- color:#68ad8a;
- font-size:11px;
- letter-spacing:4px;
- margin-bottom:15px;
-}
-
 .title{
- color:#e9fff1;
  font-size:clamp(42px,12vw,72px);
- font-weight:1000;
- letter-spacing:5px;
- text-shadow:
-  0 0 8px #39e78c,
-  4px 4px 0 #155538;
+ font-weight:1000;letter-spacing:5px;
+ color:#d9ffe9;text-shadow:0 0 20px #27db83
 }
-
-.subtitle{
- color:#7da98f;
- font-size:11px;
- letter-spacing:3px;
- margin-top:8px;
+#play{font-size:18px;padding:17px 35px}
+#controls{
+ display:none;position:absolute;bottom:15px;
+ left:0;right:0;justify-content:space-between;
+ align-items:end;padding:12px;
+ pointer-events:none
 }
-
-.cave{
- font-size:65px;
- margin:30px 0;
- filter:drop-shadow(0 0 15px #36d982);
+#stick{
+ width:110px;height:110px;border-radius:50%;
+ background:#153a30aa;border:2px solid #57e8a4;
+ position:relative;pointer-events:auto;
+ touch-action:none
 }
-
-#play{
- width:85%;
- max-width:290px;
- padding:18px;
- background:#176a43;
- color:#ffffff;
- border:2px solid #5af4a1;
- border-radius:5px;
- font-size:17px;
- letter-spacing:2px;
- box-shadow:0 0 20px #176a4366;
+#knob{
+ width:42px;height:42px;border-radius:50%;
+ background:#65f4b0;position:absolute;
+ left:32px;top:32px;pointer-events:none
 }
-
-#play:active{
- background:#269c61;
- transform:scale(.97);
-}
-
-.version{
- position:absolute;
- bottom:18px;
- color:#527b65;
- font-size:10px;
- letter-spacing:2px;
-}
-
-#full{
- font-size:15px;
+.look{display:flex;gap:10px;pointer-events:auto}
+.look button{width:58px;height:58px;font-size:22px}
+#hint{
+ position:absolute;top:12px;left:0;right:0;
+ text-align:center;color:#a5f5ce;
+ font-size:12px;pointer-events:none
 }
 </style>
+
+<script type="importmap">
+{
+ "imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"
+ }
+}
+</script>
 </head>
 
 <body>
-
 <header>
- <div class="logo">⚛ PROTON ENGINE</div>
+ <b>⚛ THREE PURPLE | BOMB CAVE</b>
  <button id="full">⛶</button>
 </header>
 
 <main>
-
  <canvas id="game"></canvas>
 
- <div class="hud" id="hud">
-  <span>HP: 100</span>
-  <span>BOMB CAVE DEMO</span>
-  <span>LEVEL 01</span>
- </div>
-
- <div class="controls" id="controls">
-  <div id="stick">
-   <div id="knob"></div>
-  </div>
-
-  <div class="look">
-   <button class="action" id="left">↶</button>
-   <button class="action" id="right">↷</button>
-  </div>
- </div>
-
  <div id="menu">
-  <div class="studio">THREE PURPLE APRESENTA</div>
-
+  <div style="letter-spacing:4px;color:#6bdca0">
+   THREE PURPLE APRESENTA
+  </div>
   <div class="title">BOMB CAVE</div>
-
-  <div class="subtitle">
-   AN EXPERIMENTAL GAME DEMO
-  </div>
-
-  <div class="cave">⛰️</div>
-
+  <div>ALIEN PLANET EXPEDITION</div>
   <button id="play">▶ JOGAR DEMO</button>
-
-  <div class="version">
-   PROTON ENGINE • BUILD 0.1
-  </div>
+  <small>3D PROTOTYPE 0.2</small>
  </div>
 
+ <div id="hint">CAVERNA ALIENÍGENA • SETOR 01</div>
+
+ <div id="controls">
+  <div id="stick"><div id="knob"></div></div>
+  <div class="look">
+   <button id="left">↶</button>
+   <button id="right">↷</button>
+  </div>
+ </div>
 </main>
 
-<script>
-const canvas=document.getElementById("game");
-const ctx=canvas.getContext("2d");
+<script type="module">
+import * as THREE from "three";
 
-const map=[
-"############",
-"#..........#",
-"#..##......#",
-"#..........#",
-"#......#...#",
-"#......#...#",
-"#..........#",
-"#...##.....#",
-"#..........#",
-"############"
-];
+const canvas=document.querySelector("#game");
 
-let px=2.5;
-let py=2.5;
-let angle=0;
-let gameStarted=false;
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x101c28);
+scene.fog=new THREE.Fog(0x101c28,7,27);
 
-const FOV=Math.PI/3;
+const camera=new THREE.PerspectiveCamera(
+ 75,1,0.1,100
+);
+camera.position.set(0,1.6,5);
 
-let moveX=0;
-let moveY=0;
+const renderer=new THREE.WebGLRenderer({
+ canvas,antialias:false
+});
+renderer.setPixelRatio(
+ Math.min(window.devicePixelRatio,1.5)
+);
+renderer.shadowMap.enabled=true;
+renderer.outputColorSpace=THREE.SRGBColorSpace;
 
-function resize(){
- const rect=canvas.getBoundingClientRect();
- const dpr=Math.min(devicePixelRatio||1,2);
+scene.add(new THREE.HemisphereLight(
+ 0x8bbdce,0x17100d,1.5
+));
 
- canvas.width=Math.floor(rect.width*dpr);
- canvas.height=Math.floor(rect.height*dpr);
+const light=new THREE.PointLight(0x39eaff,35,14);
+light.position.set(0,2,0);
+scene.add(light);
+
+const greenLight=new THREE.PointLight(
+ 0x28ff9b,18,10
+);
+greenLight.position.set(-3,2,-5);
+scene.add(greenLight);
+
+const stone=new THREE.MeshStandardMaterial({
+ color:0x353d42,roughness:1,
+ flatShading:true
+});
+
+const floorMat=new THREE.MeshStandardMaterial({
+ color:0x252d32,roughness:1
+});
+
+const crystalMat=new THREE.MeshStandardMaterial({
+ color:0x28e9d4,
+ emissive:0x087e78,
+ emissiveIntensity:2,
+ roughness:0.3
+});
+
+// CHÃO
+const floor=new THREE.Mesh(
+ new THREE.PlaneGeometry(30,30),floorMat
+);
+floor.rotation.x=-Math.PI/2;
+floor.position.y=0;
+scene.add(floor);
+
+// TETO
+const ceiling=new THREE.Mesh(
+ new THREE.PlaneGeometry(30,30),stone
+);
+ceiling.rotation.x=Math.PI/2;
+ceiling.position.y=5;
+scene.add(ceiling);
+
+// PAREDES
+function wall(x,y,z,w,h,d){
+ const mesh=new THREE.Mesh(
+  new THREE.BoxGeometry(w,h,d),stone
+ );
+ mesh.position.set(x,y,z);
+ scene.add(mesh);
 }
 
+wall(0,2.5,-10,20,5,1);
+wall(-10,2.5,0,1,5,20);
+wall(10,2.5,0,1,5,20);
+wall(0,2.5,10,20,5,1);
+
+// ROCHAS
+for(let i=0;i<65;i++){
+ const rock=new THREE.Mesh(
+  new THREE.IcosahedronGeometry(
+   0.3+Math.random()*0.8,0
+  ),stone
+ );
+ rock.position.set(
+  (Math.random()-.5)*18,
+  0.15+Math.random()*3.7,
+  (Math.random()-.5)*18
+ );
+ rock.rotation.set(
+  Math.random()*3,
+  Math.random()*3,
+  Math.random()*3
+ );
+ scene.add(rock);
+}
+
+// CRISTAIS
+const crystals=[];
+for(let i=0;i<12;i++){
+ const crystal=new THREE.Mesh(
+  new THREE.OctahedronGeometry(
+   0.35+Math.random()*0.4
+  ),crystalMat
+ );
+ crystal.position.set(
+  (Math.random()-.5)*15,
+  0.5+Math.random()*2,
+  -2-Math.random()*13
+ );
+ scene.add(crystal);
+ crystals.push(crystal);
+}
+
+// MOVIMENTAÇÃO
+let moveX=0,moveY=0;
+let angle=0;
+let started=false;
+
+const direction=new THREE.Vector3();
+
+function update(){
+ if(started){
+  direction.set(
+   Math.sin(angle)*moveY+
+   Math.cos(angle)*moveX,
+   0,
+   -Math.cos(angle)*moveY+
+   Math.sin(angle)*moveX
+  );
+
+  camera.position.addScaledVector(direction,0.075);
+
+  camera.position.x=THREE.MathUtils.clamp(
+   camera.position.x,-8.5,8.5
+  );
+  camera.position.z=THREE.MathUtils.clamp(
+   camera.position.z,-8.5,8.5
+  );
+
+  camera.rotation.y=angle;
+ }
+
+ crystals.forEach((c,i)=>{
+  c.rotation.y+=0.01;
+  c.position.y+=Math.sin(Date.now()*.001+i)*0.0008;
+ });
+}
+
+function resize(){
+ const w=canvas.clientWidth;
+ const h=canvas.clientHeight;
+ if(!w||!h)return;
+
+ camera.aspect=w/h;
+ camera.updateProjectionMatrix();
+ renderer.setSize(w,h,false);
+}
 window.addEventListener("resize",resize);
 resize();
 
-function wall(x,y){
- const mx=Math.floor(x);
- const my=Math.floor(y);
-
- return !map[my] || map[my][mx]!==".";
+function animate(){
+ requestAnimationFrame(animate);
+ update();
+ renderer.render(scene,camera);
 }
+animate();
 
-function render(){
-
- const w=canvas.width;
- const h=canvas.height;
-
- if(!w||!h)return;
-
- ctx.fillStyle="#182b3b";
- ctx.fillRect(0,0,w,h/2);
-
- ctx.fillStyle="#403b32";
- ctx.fillRect(0,h/2,w,h/2);
-
- for(let x=0;x<w;x++){
-
-  const ray=angle-FOV/2+(x/w)*FOV;
-
-  const dx=Math.cos(ray);
-  const dy=Math.sin(ray);
-
-  let dist=0.02;
-  let hitX=0;
-  let hitY=0;
-
-  while(dist<16){
-
-   hitX=px+dx*dist;
-   hitY=py+dy*dist;
-
-   if(wall(hitX,hitY))break;
-
-   dist+=0.025;
-  }
-
-  const corrected=Math.max(
-   0.1,
-   dist*Math.cos(ray-angle)
-  );
-
-  const wallHeight=Math.min(
-   h*3,
-   h/corrected
-  );
-
-  const top=h/2-wallHeight/2;
-
-  const brightness=Math.max(
-   0.15,
-   1-corrected/10
-  );
-
-  const texture=Math.floor(
-   (hitX*9+hitY*9)%2
-  );
-
-  const green=texture?190:125;
-
-  ctx.fillStyle=`rgb(
-   ${Math.floor(35*brightness)},
-   ${Math.floor(green*brightness)},
-   ${Math.floor(105*brightness)}
-  )`;
-
-  ctx.fillRect(x,top,1,wallHeight);
- }
-}
-
-function update(){
-
- if(gameStarted){
-
-  const speed=0.045;
-
-  const nx=
-   px+Math.cos(angle)*moveY*speed+
-   Math.cos(angle+Math.PI/2)*moveX*speed;
-
-  const ny=
-   py+Math.sin(angle)*moveY*speed+
-   Math.sin(angle+Math.PI/2)*moveX*speed;
-
-  if(!wall(nx,py))px=nx;
-  if(!wall(px,ny))py=ny;
- }
-
- render();
- requestAnimationFrame(update);
-}
-
-requestAnimationFrame(update);
-
-// INICIAR DEMO
-
-document.getElementById("play").onclick=()=>{
- gameStarted=true;
-
- document.getElementById("menu").style.display="none";
- document.getElementById("hud").style.display="flex";
- document.getElementById("controls").style.display="flex";
+// MENU
+document.querySelector("#play").onclick=()=>{
+ started=true;
+ document.querySelector("#menu").style.display="none";
+ document.querySelector("#controls").style.display="flex";
 };
 
 // JOYSTICK
-
-const stick=document.getElementById("stick");
-const knob=document.getElementById("knob");
-
+const stick=document.querySelector("#stick");
+const knob=document.querySelector("#knob");
 let active=false;
 
-function joystick(e){
+stick.addEventListener("pointerdown",e=>{
+ active=true;
+ stick.setPointerCapture(e.pointerId);
+});
+stick.addEventListener("pointermove",e=>{
+ if(!active)return;
 
  const r=stick.getBoundingClientRect();
-
- let dx=e.clientX-(r.left+r.width/2);
- let dy=e.clientY-(r.top+r.height/2);
-
- const max=34;
+ let dx=e.clientX-r.left-r.width/2;
+ let dy=e.clientY-r.top-r.height/2;
  const len=Math.hypot(dx,dy);
+ const max=34;
 
  if(len>max){
   dx=dx/len*max;
@@ -403,19 +310,8 @@ function joystick(e){
  }
 
  knob.style.transform=`translate(${dx}px,${dy}px)`;
-
  moveX=dx/max;
  moveY=-dy/max;
-}
-
-stick.addEventListener("pointerdown",e=>{
- active=true;
- stick.setPointerCapture(e.pointerId);
- joystick(e);
-});
-
-stick.addEventListener("pointermove",e=>{
- if(active)joystick(e);
 });
 
 function release(){
@@ -424,32 +320,25 @@ function release(){
  moveY=0;
  knob.style.transform="translate(0,0)";
 }
-
 stick.addEventListener("pointerup",release);
 stick.addEventListener("pointercancel",release);
 
 // ROTAÇÃO
-
-document.getElementById("left").onpointerdown=()=>{
- angle-=0.18;
+document.querySelector("#left").onpointerdown=()=>{
+ angle+=0.12;
 };
-
-document.getElementById("right").onpointerdown=()=>{
- angle+=0.18;
+document.querySelector("#right").onpointerdown=()=>{
+ angle-=0.12;
 };
 
 // TELA CHEIA
-
-document.getElementById("full").onclick=async()=>{
+document.querySelector("#full").onclick=async()=>{
  try{
-  if(!document.fullscreenElement){
+  if(!document.fullscreenElement)
    await document.documentElement.requestFullscreen();
-  }else{
+  else
    await document.exitFullscreen();
-  }
- }catch(e){
-  console.log("Fullscreen indisponível",e);
- }
+ }catch(e){}
 };
 
 </script>
@@ -461,6 +350,5 @@ if("serviceWorker" in navigator){
  });
 }
 </script>
-
 </body>
 </html>
