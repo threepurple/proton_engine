@@ -1,353 +1,273 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<meta name="theme-color" content="#08110f">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>BOMB CAVE</title>
-<link rel="manifest" href="./manifest.json">
-
 <style>
-*{box-sizing:border-box}
-body{
- margin:0;background:#080d12;color:white;
- font-family:Arial,sans-serif;overflow:hidden;
- touch-action:none
-}
-header{
- height:48px;background:#101c19;
- display:flex;align-items:center;
- justify-content:space-between;padding:0 12px
-}
-button{
- background:#174a38;color:white;
- border:1px solid #50d99b;
- border-radius:8px;padding:12px;font-weight:bold
-}
-main{height:calc(100dvh - 48px);position:relative}
-#game{width:100%;height:100%;display:block}
-#menu{
- position:absolute;inset:0;z-index:5;
- display:flex;align-items:center;
- justify-content:center;flex-direction:column;
- background:linear-gradient(#06110caa,#06110cee);
- gap:20px;text-align:center
-}
-.title{
- font-size:clamp(42px,12vw,72px);
- font-weight:1000;letter-spacing:5px;
- color:#d9ffe9;text-shadow:0 0 20px #27db83
-}
-#play{font-size:18px;padding:17px 35px}
-#controls{
- display:none;position:absolute;bottom:15px;
- left:0;right:0;justify-content:space-between;
- align-items:end;padding:12px;
- pointer-events:none
-}
-#stick{
- width:110px;height:110px;border-radius:50%;
- background:#153a30aa;border:2px solid #57e8a4;
- position:relative;pointer-events:auto;
- touch-action:none
-}
-#knob{
- width:42px;height:42px;border-radius:50%;
- background:#65f4b0;position:absolute;
- left:32px;top:32px;pointer-events:none
-}
-.look{display:flex;gap:10px;pointer-events:auto}
-.look button{width:58px;height:58px;font-size:22px}
-#hint{
- position:absolute;top:12px;left:0;right:0;
- text-align:center;color:#a5f5ce;
- font-size:12px;pointer-events:none
-}
+* { box-sizing:border-box }
+body { margin:0; overflow:hidden; background:#080611; color:white; font-family:Arial; touch-action:none }
+canvas { display:block }
+#menu { position:fixed; inset:0; z-index:5; display:flex; flex-direction:column; align-items:center; justify-content:center; background:radial-gradient(circle,#382052,#080611 75%) }
+h1 { color:#d2a0ff; font-size:42px; letter-spacing:5px; text-shadow:0 0 20px #a044ff }
+button { color:white; background:#28163e; border:1px solid #b56aff; border-radius:12px; padding:14px 20px; font-size:18px; touch-action:none }
+#hud { display:none; position:fixed; inset:0; pointer-events:none }
+#info { position:absolute; top:15px; left:15px; text-shadow:0 2px 4px black }
+#cross { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:25px }
+#move { position:absolute; bottom:20px; left:15px; display:grid; grid-template-columns:60px 60px 60px; gap:5px; pointer-events:auto }
+#move button { width:60px; height:60px; padding:0; border-radius:50% }
+#look { position:absolute; right:15px; bottom:25px; display:flex; gap:8px; pointer-events:auto }
+#look button { width:60px; height:60px; padding:0; border-radius:50% }
 </style>
+</head>
+<body>
+
+<div id="menu">
+  <h1>BOMB CAVE</h1>
+  <p>THE CORE MUST FALL</p>
+  <button id="play">JOGAR DEMO</button>
+</div>
+
+<div id="hud">
+  <div id="info">BOMB CAVE | DEMO 3D</div>
+  <div id="cross">+</div>
+  <div id="move">
+    <span></span><button data-move="forward">▲</button><span></span>
+    <button data-move="left">◀</button>
+    <button data-move="backward">▼</button>
+    <button data-move="right">▶</button>
+  </div>
+  <div id="look">
+    <button id="turnLeft">↶</button>
+    <button id="turnRight">↷</button>
+  </div>
+</div>
 
 <script type="importmap">
 {
- "imports":{
-  "three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"
- }
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+  }
 }
 </script>
-</head>
-
-<body>
-<header>
- <b>⚛ THREE PURPLE | BOMB CAVE</b>
- <button id="full">⛶</button>
-</header>
-
-<main>
- <canvas id="game"></canvas>
-
- <div id="menu">
-  <div style="letter-spacing:4px;color:#6bdca0">
-   THREE PURPLE APRESENTA
-  </div>
-  <div class="title">BOMB CAVE</div>
-  <div>ALIEN PLANET EXPEDITION</div>
-  <button id="play">▶ JOGAR DEMO</button>
-  <small>3D PROTOTYPE 0.2</small>
- </div>
-
- <div id="hint">CAVERNA ALIENÍGENA • SETOR 01</div>
-
- <div id="controls">
-  <div id="stick"><div id="knob"></div></div>
-  <div class="look">
-   <button id="left">↶</button>
-   <button id="right">↷</button>
-  </div>
- </div>
-</main>
 
 <script type="module">
 import * as THREE from "three";
 
-const canvas=document.querySelector("#game");
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x080611);
+scene.fog = new THREE.Fog(0x080611, 12, 55);
 
-const scene=new THREE.Scene();
-scene.background=new THREE.Color(0x101c28);
-scene.fog=new THREE.Fog(0x101c28,7,27);
-
-const camera=new THREE.PerspectiveCamera(
- 75,1,0.1,100
+const camera = new THREE.PerspectiveCamera(
+  75, innerWidth / innerHeight, 0.1, 100
 );
-camera.position.set(0,1.6,5);
+camera.position.set(0, 1.7, 5);
 
-const renderer=new THREE.WebGLRenderer({
- canvas,antialias:false
-});
-renderer.setPixelRatio(
- Math.min(window.devicePixelRatio,1.5)
-);
-renderer.shadowMap.enabled=true;
-renderer.outputColorSpace=THREE.SRGBColorSpace;
+const renderer = new THREE.WebGLRenderer({ antialias:true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+document.body.appendChild(renderer.domElement);
 
-scene.add(new THREE.HemisphereLight(
- 0x8bbdce,0x17100d,1.5
-));
+// ILUMINAÇÃO
+scene.add(new THREE.HemisphereLight(0xb9aaff, 0x201323, 1.5));
 
-const light=new THREE.PointLight(0x39eaff,35,14);
-light.position.set(0,2,0);
+const light = new THREE.PointLight(0xa33cff, 45, 45);
+light.position.set(0, 4, -12);
 scene.add(light);
 
-const greenLight=new THREE.PointLight(
- 0x28ff9b,18,10
-);
-greenLight.position.set(-3,2,-5);
-scene.add(greenLight);
-
-const stone=new THREE.MeshStandardMaterial({
- color:0x353d42,roughness:1,
- flatShading:true
-});
-
-const floorMat=new THREE.MeshStandardMaterial({
- color:0x252d32,roughness:1
-});
-
-const crystalMat=new THREE.MeshStandardMaterial({
- color:0x28e9d4,
- emissive:0x087e78,
- emissiveIntensity:2,
- roughness:0.3
-});
-
 // CHÃO
-const floor=new THREE.Mesh(
- new THREE.PlaneGeometry(30,30),floorMat
+const floor = new THREE.Mesh(
+  new THREE.PlaneGeometry(60, 60),
+  new THREE.MeshStandardMaterial({ color:0x302a38, roughness:1 })
 );
-floor.rotation.x=-Math.PI/2;
-floor.position.y=0;
+floor.rotation.x = -Math.PI / 2;
 scene.add(floor);
 
 // TETO
-const ceiling=new THREE.Mesh(
- new THREE.PlaneGeometry(30,30),stone
+const ceiling = new THREE.Mesh(
+  new THREE.PlaneGeometry(60, 60),
+  new THREE.MeshStandardMaterial({ color:0x100d19 })
 );
-ceiling.rotation.x=Math.PI/2;
-ceiling.position.y=5;
+ceiling.rotation.x = Math.PI / 2;
+ceiling.position.y = 7;
 scene.add(ceiling);
 
 // PAREDES
-function wall(x,y,z,w,h,d){
- const mesh=new THREE.Mesh(
-  new THREE.BoxGeometry(w,h,d),stone
- );
- mesh.position.set(x,y,z);
- scene.add(mesh);
-}
+const wallMat = new THREE.MeshStandardMaterial({ color:0x292333 });
 
-wall(0,2.5,-10,20,5,1);
-wall(-10,2.5,0,1,5,20);
-wall(10,2.5,0,1,5,20);
-wall(0,2.5,10,20,5,1);
+function makeWall(x,y,z,sx,sy,sz) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz), wallMat);
+  m.position.set(x,y,z);
+  scene.add(m);
+}
+makeWall(0,3.5,-30,60,7,1);
+makeWall(0,3.5,30,60,7,1);
+makeWall(-30,3.5,0,1,7,60);
+makeWall(30,3.5,0,1,7,60);
 
 // ROCHAS
+const rockMat = new THREE.MeshStandardMaterial({ color:0x51465d });
 for(let i=0;i<65;i++){
- const rock=new THREE.Mesh(
-  new THREE.IcosahedronGeometry(
-   0.3+Math.random()*0.8,0
-  ),stone
- );
- rock.position.set(
-  (Math.random()-.5)*18,
-  0.15+Math.random()*3.7,
-  (Math.random()-.5)*18
- );
- rock.rotation.set(
-  Math.random()*3,
-  Math.random()*3,
-  Math.random()*3
- );
- scene.add(rock);
+  const rock = new THREE.Mesh(
+    new THREE.DodecahedronGeometry(0.4+Math.random(),0),
+    rockMat
+  );
+  rock.position.set(
+    (Math.random()-0.5)*45,
+    0.3,
+    (Math.random()-0.5)*45
+  );
+  rock.rotation.set(Math.random()*3,Math.random()*3,Math.random()*3);
+  scene.add(rock);
 }
 
 // CRISTAIS
-const crystals=[];
-for(let i=0;i<12;i++){
- const crystal=new THREE.Mesh(
-  new THREE.OctahedronGeometry(
-   0.35+Math.random()*0.4
-  ),crystalMat
- );
- crystal.position.set(
-  (Math.random()-.5)*15,
-  0.5+Math.random()*2,
-  -2-Math.random()*13
- );
- scene.add(crystal);
- crystals.push(crystal);
+const crystalMat = new THREE.MeshStandardMaterial({
+  color:0x9c43ff,
+  emissive:0x7b18ff,
+  emissiveIntensity:2
+});
+for(let i=0;i<14;i++){
+  const crystal = new THREE.Mesh(
+    new THREE.OctahedronGeometry(0.5+Math.random()*0.5),
+    crystalMat
+  );
+  crystal.position.set(
+    (Math.random()-0.5)*36,
+    1+Math.random()*2,
+    (Math.random()-0.5)*36
+  );
+  scene.add(crystal);
 }
 
-// MOVIMENTAÇÃO
-let moveX=0,moveY=0;
+// NÚCLEO
+const core = new THREE.Mesh(
+  new THREE.SphereGeometry(2.2,32,32),
+  new THREE.MeshStandardMaterial({
+    color:0x9b35ff,
+    emissive:0x7a13ff,
+    emissiveIntensity:3,
+    roughness:0.25,
+    metalness:0.2
+  })
+);
+core.position.set(0,3,-12);
+scene.add(core);
+
+const ring = new THREE.Mesh(
+  new THREE.TorusGeometry(3,0.07,12,80),
+  new THREE.MeshBasicMaterial({ color:0xd6a0ff })
+);
+ring.position.copy(core.position);
+ring.rotation.x = Math.PI/2.5;
+scene.add(ring);
+
+// CONTROLES
+const keys = {
+  forward:false,
+  backward:false,
+  left:false,
+  right:false,
+  turnLeft:false,
+  turnRight:false
+};
+
+document.querySelectorAll("[data-move]").forEach(btn=>{
+  const key = btn.dataset.move;
+  btn.addEventListener("pointerdown",e=>{
+    e.preventDefault();
+    keys[key]=true;
+  });
+  const release=()=>{
+    keys[key]=false;
+  };
+  btn.addEventListener("pointerup",release);
+  btn.addEventListener("pointercancel",release);
+  btn.addEventListener("pointerleave",release);
+});
+
+function bindTurn(id,key){
+  const btn=document.getElementById(id);
+  btn.addEventListener("pointerdown",e=>{
+    e.preventDefault();
+    keys[key]=true;
+  });
+  const release=()=>keys[key]=false;
+  btn.addEventListener("pointerup",release);
+  btn.addEventListener("pointercancel",release);
+  btn.addEventListener("pointerleave",release);
+}
+bindTurn("turnLeft","turnLeft");
+bindTurn("turnRight","turnRight");
+
+// ROTAÇÃO E MOVIMENTO CORRIGIDOS
 let angle=0;
-let started=false;
+const direction = new THREE.Vector3();
 
-const direction=new THREE.Vector3();
-
-function update(){
- if(started){
-  direction.set(
-   Math.sin(angle)*moveY+
-   Math.cos(angle)*moveX,
-   0,
-   -Math.cos(angle)*moveY+
-   Math.sin(angle)*moveX
-  );
-
-  camera.position.addScaledVector(direction,0.075);
-
-  camera.position.x=THREE.MathUtils.clamp(
-   camera.position.x,-8.5,8.5
-  );
-  camera.position.z=THREE.MathUtils.clamp(
-   camera.position.z,-8.5,8.5
-  );
+function updateMovement(){
+  if(keys.turnLeft) angle += 0.035;
+  if(keys.turnRight) angle -= 0.035;
 
   camera.rotation.y=angle;
- }
 
- crystals.forEach((c,i)=>{
-  c.rotation.y+=0.01;
-  c.position.y+=Math.sin(Date.now()*.001+i)*0.0008;
- });
+  const moveY =
+    (keys.forward ? 1 : 0) -
+    (keys.backward ? 1 : 0);
+
+  const moveX =
+    (keys.right ? 1 : 0) -
+    (keys.left ? 1 : 0);
+
+  direction.set(
+    -Math.sin(angle)*moveY + Math.cos(angle)*moveX,
+    0,
+    -Math.cos(angle)*moveY - Math.sin(angle)*moveX
+  );
+
+  if(direction.lengthSq()>0){
+    direction.normalize();
+    camera.position.addScaledVector(direction,0.09);
+  }
+
+  // Limites da caverna
+  camera.position.x=THREE.MathUtils.clamp(camera.position.x,-28,28);
+  camera.position.z=THREE.MathUtils.clamp(camera.position.z,-28,28);
+  camera.position.y=1.7;
 }
 
-function resize(){
- const w=canvas.clientWidth;
- const h=canvas.clientHeight;
- if(!w||!h)return;
-
- camera.aspect=w/h;
- camera.updateProjectionMatrix();
- renderer.setSize(w,h,false);
-}
-window.addEventListener("resize",resize);
-resize();
+// ANIMAÇÃO
+const clock=new THREE.Clock();
 
 function animate(){
- requestAnimationFrame(animate);
- update();
- renderer.render(scene,camera);
+  requestAnimationFrame(animate);
+
+  const t=clock.getElapsedTime();
+  core.scale.setScalar(1+Math.sin(t*2)*0.035);
+  core.rotation.y=t*0.3;
+  ring.rotation.z=t*0.5;
+  light.intensity=40+Math.sin(t*3)*8;
+
+  updateMovement();
+  renderer.render(scene,camera);
 }
 animate();
 
-// MENU
-document.querySelector("#play").onclick=()=>{
- started=true;
- document.querySelector("#menu").style.display="none";
- document.querySelector("#controls").style.display="flex";
-};
-
-// JOYSTICK
-const stick=document.querySelector("#stick");
-const knob=document.querySelector("#knob");
-let active=false;
-
-stick.addEventListener("pointerdown",e=>{
- active=true;
- stick.setPointerCapture(e.pointerId);
-});
-stick.addEventListener("pointermove",e=>{
- if(!active)return;
-
- const r=stick.getBoundingClientRect();
- let dx=e.clientX-r.left-r.width/2;
- let dy=e.clientY-r.top-r.height/2;
- const len=Math.hypot(dx,dy);
- const max=34;
-
- if(len>max){
-  dx=dx/len*max;
-  dy=dy/len*max;
- }
-
- knob.style.transform=`translate(${dx}px,${dy}px)`;
- moveX=dx/max;
- moveY=-dy/max;
+// INICIAR
+document.getElementById("play").addEventListener("click",()=>{
+  document.getElementById("menu").style.display="none";
+  document.getElementById("hud").style.display="block";
 });
 
-function release(){
- active=false;
- moveX=0;
- moveY=0;
- knob.style.transform="translate(0,0)";
-}
-stick.addEventListener("pointerup",release);
-stick.addEventListener("pointercancel",release);
+// REDIMENSIONAR
+window.addEventListener("resize",()=>{
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
 
-// ROTAÇÃO
-document.querySelector("#left").onpointerdown=()=>{
- angle+=0.12;
-};
-document.querySelector("#right").onpointerdown=()=>{
- angle-=0.12;
-};
-
-// TELA CHEIA
-document.querySelector("#full").onclick=async()=>{
- try{
-  if(!document.fullscreenElement)
-   await document.documentElement.requestFullscreen();
-  else
-   await document.exitFullscreen();
- }catch(e){}
-};
-
-</script>
-
-<script>
+// SERVICE WORKER
 if("serviceWorker" in navigator){
- window.addEventListener("load",()=>{
-  navigator.serviceWorker.register("./sw.js");
- });
+  navigator.serviceWorker.register("./sw.js").catch(console.error);
 }
 </script>
 </body>
